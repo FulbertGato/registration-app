@@ -52,8 +52,11 @@ pipeline {
                            git add regapp-deploy.yml
                            git commit -m "Updated Deployment Manifest"
                         """
-                        withCredentials([gitUsernamePassword(credentialsId: 'gato-github', gitToolName: 'Default')]) {
-                          sh "git push https://github.com/FulbertGato/registration-app main"
+                        withCredentials([usernamePassword(credentialsId: 'gato-github', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+                          sh """
+                             git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/FulbertGato/registration-app.git
+                             git push origin main
+                          """
                         }
                     } else {
                         error "regapp-deploy.yml file not found, skipping push"
