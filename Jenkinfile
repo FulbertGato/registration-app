@@ -49,14 +49,14 @@ pipeline {
                         sh """
                            git config --global user.name "FulbertGato"
                            git config --global user.email "gatojunior.co@gmail.com"
-                           git add deployment.yaml
+                           git add regapp-deploy.yml
                            git commit -m "Updated Deployment Manifest"
                         """
                         withCredentials([gitUsernamePassword(credentialsId: 'gato-github', gitToolName: 'Default')]) {
                           sh "git push https://github.com/FulbertGato/registration-app main"
                         }
                     } else {
-                        error "deployment.yaml file not found, skipping push"
+                        error "regapp-deploy.yml file not found, skipping push"
                     }
                 }
             }
