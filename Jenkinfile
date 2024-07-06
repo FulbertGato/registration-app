@@ -117,6 +117,13 @@ pipeline {
         stage("Trivy Scan") {
             steps {
                 script {
+             // Clean up Docker to free space
+                    sh """
+                       docker container prune -f
+                       docker image prune -a -f
+                       docker volume prune -f
+                       docker network prune -f
+                    """
                     // Run Trivy scan
                     sh "docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${IMAGE_NAME}:latest --no-progress --scanners vuln --exit-code 0 --severity HIGH,CRITICAL --format table"
                 }
