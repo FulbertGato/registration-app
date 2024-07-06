@@ -11,7 +11,7 @@ pipeline {
         DOCKER_PASS = credentials('dockerhub')  // Using Jenkins credentials for security
         IMAGE_NAME = "${DOCKER_USER}/${APP_NAME}"
         IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
-       JENKINS_API_TOKEN = credentials("JENKINS_API_TOKEN")
+        JENKINS_API_TOKEN = credentials("JENKINS_API_TOKEN")
     }
     stages {
         stage("Cleanup Workspace") {
@@ -25,7 +25,8 @@ pipeline {
                 git branch: 'main', credentialsId: 'gato-github', url: 'https://github.com/FulbertGato/registration-app'
             }
         }
-      stage("Update the Deployment Tags") {
+
+        stage("Update the Deployment Tags") {
             steps {
                 sh """
                    cat deployment.yaml
@@ -34,7 +35,8 @@ pipeline {
                 """
             }
         }
-      stage("Push the changed deployment file to Git") {
+
+        stage("Push the changed deployment file to Git") {
             steps {
                 sh """
                    git config --global user.name "FulbertGato"
@@ -60,26 +62,25 @@ pipeline {
             }
         }
 
-        stage("SonarQube Analysis"){
-           steps {
-	           script {
-		        withSonarQubeEnv(credentialsId: 'jenkins-sonarqube-token') { 
+        stage("SonarQube Analysis") {
+            steps {
+                script {
+                    withSonarQubeEnv(credentialsId: 'jenkins-sonarqube-token') { 
                         sh "mvn sonar:sonar"
-		        }
-	           }	
-           }
-       }
-
-       stage("Quality Gate"){
-           steps {
-               script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'jenkins-sonarqube-token'
-                }	
+                    }
+                }
             }
-
         }
 
-       stage("Build & Push Docker Image") {
+        stage("Quality Gate") {
+            steps {
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'jenkins-sonarqube-token'
+                }
+            }
+        }
+
+        stage("Build & Push Docker Image") {
             steps {
                 script {
                     // Ensure the .war file is present
@@ -98,7 +99,7 @@ pipeline {
             }
         }
 
-   stage("Trivy Scan") {
+        stage("Trivy Scan") {
             steps {
                 script {
                     // Run Trivy scan
@@ -106,20 +107,22 @@ pipeline {
                 }
             }
         }
-    stage ('Cleanup Artifacts') {
-           steps {
-               script {
+
+        stage('Cleanup Artifacts') {
+            steps {
+                script {
                     sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG}"
                     sh "docker rmi ${IMAGE_NAME}:latest"
-               }
-          }
-       }
-    }
-    stage("Trigger CD Pipeline") {
-        steps {
+                }
+            }
+        }
+
+        stage("Trigger CD Pipeline") {
+            steps {
                 script {
                     sh "curl -v -k --user clouduser:${JENKINS_API_TOKEN} -X POST -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' --data 'IMAGE_TAG=${IMAGE_TAG}' 'a5a192141dd9741aa83b46b0aed9ba89-1566505811.ap-south-1.elb.amazonaws.com:8080/job/gitops-register-app-cd/buildWithParameters?token=gitops-token'"
                 }
             }
-       }
+        }
+    }
 }
