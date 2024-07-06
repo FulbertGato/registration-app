@@ -28,24 +28,36 @@ pipeline {
 
         stage("Update the Deployment Tags") {
             steps {
-                sh """
-                   cat deployment.yaml
-                   sed -i 's/${APP_NAME}.*/${APP_NAME}:${IMAGE_TAG}/g' deployment.yaml
-                   cat deployment.yaml
-                """
+                script {
+                    if (fileExists('deployment.yaml')) {
+                        sh """
+                           cat deployment.yaml
+                           sed -i 's/${APP_NAME}.*/${APP_NAME}:${IMAGE_TAG}/g' deployment.yaml
+                           cat deployment.yaml
+                        """
+                    } else {
+                        error "deployment.yaml file not found"
+                    }
+                }
             }
         }
 
         stage("Push the changed deployment file to Git") {
             steps {
-                sh """
-                   git config --global user.name "FulbertGato"
-                   git config --global user.email "gatojunior.co@gmail.com"
-                   git add deployment.yaml
-                   git commit -m "Updated Deployment Manifest"
-                """
-                withCredentials([gitUsernamePassword(credentialsId: 'gato-github', gitToolName: 'Default')]) {
-                  sh "git push https://github.com/FulbertGato/registration-app main"
+                script {
+                    if (fileExists('deployment.yaml')) {
+                        sh """
+                           git config --global user.name "FulbertGato"
+                           git config --global user.email "gatojunior.co@gmail.com"
+                           git add deployment.yaml
+                           git commit -m "Updated Deployment Manifest"
+                        """
+                        withCredentials([gitUsernamePassword(credentialsId: 'gato-github', gitToolName: 'Default')]) {
+                          sh "git push https://github.com/FulbertGato/registration-app main"
+                        }
+                    } else {
+                        error "deployment.yaml file not found, skipping push"
+                    }
                 }
             }
         }
@@ -77,52 +89,4 @@ pipeline {
                 script {
                     waitForQualityGate abortPipeline: false, credentialsId: 'jenkins-sonarqube-token'
                 }
-            }
-        }
-
-        stage("Build & Push Docker Image") {
-            steps {
-                script {
-                    // Ensure the .war file is present
-                    sh 'ls webapp/target/*.war'
-
-                    // Move the .war file to the current directory for Dockerfile
-                    sh 'cp webapp/target/*.war .'
-
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub') {
-                        def dockerImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}", "-f Dockerfile .")
-
-                        dockerImage.push()
-                        dockerImage.push('latest')
-                    }
-                }
-            }
-        }
-
-        stage("Trivy Scan") {
-            steps {
-                script {
-                    // Run Trivy scan
-                    sh "docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${IMAGE_NAME}:latest --no-progress --scanners vuln --exit-code 0 --severity HIGH,CRITICAL --format table"
-                }
-            }
-        }
-
-        stage('Cleanup Artifacts') {
-            steps {
-                script {
-                    sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG}"
-                    sh "docker rmi ${IMAGE_NAME}:latest"
-                }
-            }
-        }
-
-        stage("Trigger CD Pipeline") {
-            steps {
-                script {
-                    sh "curl -v -k --user clouduser:${JENKINS_API_TOKEN} -X POST -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' --data 'IMAGE_TAG=${IMAGE_TAG}' 'a5a192141dd9741aa83b46b0aed9ba89-1566505811.ap-south-1.elb.amazonaws.com:8080/job/gitops-register-app-cd/buildWithParameters?token=gitops-token'"
-                }
-            }
-        }
-    }
-}
+        
