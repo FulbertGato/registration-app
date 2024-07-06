@@ -25,6 +25,28 @@ pipeline {
                 git branch: 'main', credentialsId: 'gato-github', url: 'https://github.com/FulbertGato/registration-app'
             }
         }
+      stage("Update the Deployment Tags") {
+            steps {
+                sh """
+                   cat deployment.yaml
+                   sed -i 's/${APP_NAME}.*/${APP_NAME}:${IMAGE_TAG}/g' deployment.yaml
+                   cat deployment.yaml
+                """
+            }
+        }
+      stage("Push the changed deployment file to Git") {
+            steps {
+                sh """
+                   git config --global user.name "FulbertGato"
+                   git config --global user.email "gatojunior.co@gmail.com"
+                   git add deployment.yaml
+                   git commit -m "Updated Deployment Manifest"
+                """
+                withCredentials([gitUsernamePassword(credentialsId: 'gato-github', gitToolName: 'Default')]) {
+                  sh "git push https://github.com/FulbertGato/registration-app main"
+                }
+            }
+        }
 
         stage("Build Application") {
             steps {
