@@ -29,14 +29,14 @@ pipeline {
         stage("Update the Deployment Tags") {
             steps {
                 script {
-                    if (fileExists('deployment.yaml')) {
+                    if (fileExists('regapp-deploy.yml')) {
                         sh """
-                           cat deployment.yaml
-                           sed -i 's/${APP_NAME}.*/${APP_NAME}:${IMAGE_TAG}/g' deployment.yaml
-                           cat deployment.yaml
+                           cat regapp-deploy.yml
+                           sed -i 's/${APP_NAME}.*/${APP_NAME}:${IMAGE_TAG}/g' regapp-deploy.yml
+                           cat regapp-deploy.yml
                         """
                     } else {
-                        error "deployment.yaml file not found"
+                        error "regapp-deploy.yml file not found"
                     }
                 }
             }
