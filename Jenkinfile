@@ -56,12 +56,14 @@ pipeline {
 
         }
 
-        stage("Build & Push Docker Image") {
+       {
             steps {
                 script {
-                    sh 'ls target/*.war' 
+                    // Ensure the .war file is present
+                    sh 'ls webapp/target/*.war'
+
                     docker.withRegistry('https://index.docker.io/v1/', 'dockerhub') {
-                        def dockerImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}")
+                        def dockerImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}", "-f Dockerfile .")
 
                         dockerImage.push()
                         dockerImage.push('latest')
