@@ -14,7 +14,7 @@ pipeline {
 
         stage("Checkout from SCM"){
                 steps {
-                    git branch: 'main', credentialsId: 'gato-github', url: 'https://github.com/FulbertGato/register-app'
+                    git branch: 'main', credentialsId: 'gato-github', url: 'https://github.com/FulbertGato/registration-app'
                 }
         }
 
